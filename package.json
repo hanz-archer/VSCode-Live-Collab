@@ -10,6 +10,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onCommand:live-collab.helloWorld",
     "onCommand:live-collab.startCollaboration"
   ],
   "main": "./out/extension.js",
@@ -46,6 +47,7 @@
   },
   "dependencies": {
     "@types/firebase": "^2.4.32",
-    "firebase": "^11.0.2"
+    "firebase": "^11.0.2",
+    "uuid": "^11.0.3"
   }
 }

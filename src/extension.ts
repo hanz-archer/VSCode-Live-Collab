@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { syncDocument } from './firebaseService'; // relative path
+import { syncDocument } from './firebaseService'; // Ensure this path is correct
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "live-collab" is now active!');
@@ -11,18 +11,14 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // Prompt user for a document ID
-        const documentId = await vscode.window.showInputBox({
-            placeHolder: 'Enter a unique document ID to collaborate on',
-        });
-
-        if (!documentId) {
-            vscode.window.showErrorMessage('Document ID is required!');
-            return;
-        }
+        // Default document ID for testing purposes
+        const documentId = '1234';  // Set document ID to 1234 for testing
 
         // Sync the document with Firebase (initialize real-time collaboration)
         syncDocument(documentId, document.getText());
+
+        // Optional: Show a message with the document ID
+        vscode.window.showInformationMessage(`Using Document ID: ${documentId}`);
     });
 
     context.subscriptions.push(disposable);
