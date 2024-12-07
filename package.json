@@ -1,8 +1,9 @@
 {
-  "name": "live-collab",
-  "displayName": "live-collab",
+  "name": "Live-Collaboration",
+  "displayName": "Teamwork: Live Code Collaboration",
   "description": "Live Collaborator of Code",
   "version": "0.0.1",
+  "publisher": "HansArcherDalubatan",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -35,6 +36,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/axios": "^0.9.36",
     "@types/mocha": "^10.0.9",
     "@types/node": "20.x",
     "@types/vscode": "^1.95.0",
@@ -47,7 +49,12 @@
   },
   "dependencies": {
     "@types/firebase": "^2.4.32",
+    "axios": "^1.7.9",
     "firebase": "^11.0.2",
     "uuid": "^11.0.3"
-  }
+  },
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/hanz-archer/VSCode-Live-Collab.git"
+}
 }

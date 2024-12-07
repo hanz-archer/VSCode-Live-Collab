@@ -72,4 +72,3 @@ export const listenForDocumentUpdates = (documentId: string, callback: (content:
 export const syncRealTimeDocumentUpdates = (documentId: string, content: string) => {
     syncDocument(documentId, content); // Sync text content in real-time as edits happen
 };
-

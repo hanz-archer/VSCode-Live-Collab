@@ -1,5 +1,28 @@
 import * as vscode from 'vscode';
-import { syncDocument, updateCursorPosition, listenForCursorUpdates, listenForDocumentUpdates, syncRealTimeDocumentUpdates } from './firebaseService'; // Ensure this path is correct
+import { syncDocument, updateCursorPosition, listenForCursorUpdates, listenForDocumentUpdates, syncRealTimeDocumentUpdates } from './firebaseService';
+
+// Function to generate a random 5-character alphanumeric ID
+const generateDocumentId = (): string => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 5; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        result += characters[randomIndex];
+    }
+    return result;
+};
+
+// Function to authenticate user with GitHub
+const authenticateWithGitHub = async (): Promise<string | null> => {
+    try {
+        const session = await vscode.authentication.getSession('github', [], { createIfNone: true });
+        return session?.account?.label || null; // Use session.account.label to get the display name
+    } catch (error) {
+        vscode.window.showErrorMessage('GitHub authentication failed.');
+        return null;
+    }
+};
+
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "live-collab" is now active!');
@@ -7,6 +30,17 @@ export function activate(context: vscode.ExtensionContext) {
     const userId = `user_${Date.now()}`; // Generate a unique user ID
     let documentId: string | null = null; // Variable to store the current document ID
     const collaboratorCursors: Record<string, vscode.TextEditorDecorationType> = {}; // Store cursor decorations
+    let displayName: string | null = null; // To store GitHub display name
+
+    // Authenticate the user via GitHub when the extension is activated
+    authenticateWithGitHub().then((name) => {
+        if (name) {
+            displayName = name;
+            console.log(`Authenticated as: ${displayName}`);
+        } else {
+            vscode.window.showErrorMessage('Could not retrieve GitHub user information.');
+        }
+    });
 
     const showCollaboratorsCursors = (cursors: Record<string, { line: number; character: number }>) => {
         const editor = vscode.window.activeTextEditor;
@@ -22,7 +56,7 @@ export function activate(context: vscode.ExtensionContext) {
             const range = new vscode.Range(position.line, position.character, position.line, position.character);
             const decorationType = vscode.window.createTextEditorDecorationType({
                 after: {
-                    contentText: ` ${collabUserId}`, // Display collaborator's user ID after the cursor
+                    contentText: ` ${displayName || collabUserId}`, // Use GitHub display name, fallback to userId
                     color: 'rgba(0, 122, 255, 0.7)', // Color of the collaborator ID text
                     margin: '0 5px', // Add margin to avoid overlapping with the code
                 },
@@ -38,43 +72,83 @@ export function activate(context: vscode.ExtensionContext) {
      * Command to start collaboration.
      */
     let startCollaborationDisposable = vscode.commands.registerCommand('live-collab.startCollaboration', async () => {
+        if (!displayName) {
+            vscode.window.showErrorMessage('You must authenticate with GitHub first!');
+            return;
+        }
+
+        // Prompt the user to choose their role
+        const role = await vscode.window.showQuickPick(['Host', 'Collaborator'], {
+            placeHolder: 'Are you a Host or a Collaborator?',
+        });
+
+        if (!role) {
+            vscode.window.showErrorMessage('Role selection canceled.');
+            return;
+        }
+
         const document = vscode.window.activeTextEditor?.document;
         if (!document) {
             vscode.window.showErrorMessage('No active document found!');
             return;
         }
 
-        // Default document ID for testing purposes
-        documentId = '1234'; // Set document ID to 1234 for testing
+        if (role === 'Host') {
+            // Generate a random document ID for the host
+            documentId = generateDocumentId();
+            vscode.window.showInformationMessage(`Share this Document ID with your collaborators: ${documentId}`);
 
-        // Sync the document with Firebase
-        syncDocument(documentId, document.getText());
-
-        // Listen for collaborators' cursor updates
-        listenForCursorUpdates(documentId, (cursors) => {
-            showCollaboratorsCursors(cursors);
-        });
-
-        // Listen for real-time document updates
-        listenForDocumentUpdates(documentId, (content) => {
-            const editor = vscode.window.activeTextEditor;
-            if (editor) {
-                const currentText = editor.document.getText();
-                if (currentText !== content) {
-                    // Only update the document if content is different to avoid unnecessary updates
-                    const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
-                    editor.edit((editBuilder) => {
-                        editBuilder.replace(fullRange, content);
-                    }).then(() => {
-                        // After the document is updated, notify the user if needed
-                        console.log("Document content updated in real-time.");
-                    });
+            // Start collaboration for the host
+            syncDocument(documentId, document.getText());
+            listenForCursorUpdates(documentId, (cursors) => {
+                showCollaboratorsCursors(cursors);
+            });
+            listenForDocumentUpdates(documentId, (content) => {
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    const currentText = editor.document.getText();
+                    if (currentText !== content) {
+                        const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
+                        editor.edit((editBuilder) => {
+                            editBuilder.replace(fullRange, content);
+                        });
+                    }
                 }
-            }
-        });
+            });
+        } else if (role === 'Collaborator') {
+            // Ask for the document ID from the collaborator
+            const inputId = await vscode.window.showInputBox({
+                prompt: 'Enter the Document ID provided by the Host',
+                placeHolder: 'Enter Document ID',
+            });
 
-        // Inform the user
-        vscode.window.showInformationMessage(`Collaboration started with Document ID: ${documentId}`);
+            if (!inputId) {
+                vscode.window.showErrorMessage('No Document ID provided.');
+                return;
+            }
+
+            documentId = inputId;
+
+            // Validate the document ID and start collaboration
+            listenForDocumentUpdates(documentId, (content) => {
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    const currentText = editor.document.getText();
+                    if (currentText !== content) {
+                        const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
+                        editor.edit((editBuilder) => {
+                            editBuilder.replace(fullRange, content);
+                        });
+                    }
+                }
+            });
+
+            listenForCursorUpdates(documentId, (cursors) => {
+                showCollaboratorsCursors(cursors);
+            });
+
+            vscode.window.showInformationMessage(`Joined collaboration on Document ID: ${documentId}`);
+        }
     });
 
     /**
