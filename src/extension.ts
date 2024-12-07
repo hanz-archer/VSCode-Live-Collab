@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { syncDocument, updateCursorPosition, listenForCursorUpdates } from './firebaseService'; // Ensure this path is correct
+import { syncDocument, updateCursorPosition, listenForCursorUpdates, listenForDocumentUpdates, syncRealTimeDocumentUpdates } from './firebaseService'; // Ensure this path is correct
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "live-collab" is now active!');
@@ -55,6 +55,24 @@ export function activate(context: vscode.ExtensionContext) {
             showCollaboratorsCursors(cursors);
         });
 
+        // Listen for real-time document updates
+        listenForDocumentUpdates(documentId, (content) => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                const currentText = editor.document.getText();
+                if (currentText !== content) {
+                    // Only update the document if content is different to avoid unnecessary updates
+                    const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
+                    editor.edit((editBuilder) => {
+                        editBuilder.replace(fullRange, content);
+                    }).then(() => {
+                        // After the document is updated, notify the user if needed
+                        console.log("Document content updated in real-time.");
+                    });
+                }
+            }
+        });
+
         // Inform the user
         vscode.window.showInformationMessage(`Collaboration started with Document ID: ${documentId}`);
     });
@@ -69,6 +87,17 @@ export function activate(context: vscode.ExtensionContext) {
         if (position) {
             updateCursorPosition(documentId, userId, { line: position.line, character: position.character });
         }
+    });
+
+    /**
+     * Track and sync text changes in the document.
+     */
+    vscode.workspace.onDidChangeTextDocument((event) => {
+        if (!documentId) return; // Only track text changes if collaboration is active
+
+        const document = event.document;
+        const content = document.getText();
+        syncRealTimeDocumentUpdates(documentId, content); // Sync the updated content to Firebase
     });
 
     // Add the command to the extension's context subscriptions

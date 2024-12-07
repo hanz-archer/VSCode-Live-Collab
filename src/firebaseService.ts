@@ -62,3 +62,14 @@ export const listenForDocumentUpdates = (documentId: string, callback: (content:
         callback(snapshot.val()); // Pass the updated document content to the callback
     });
 };
+
+/**
+ * Listen for real-time updates and sync document changes in Firebase.
+ * This will push text content changes to Firebase as they happen.
+ * @param documentId - The document ID to sync
+ * @param callback - Callback to call with the latest content for the document.
+ */
+export const syncRealTimeDocumentUpdates = (documentId: string, content: string) => {
+    syncDocument(documentId, content); // Sync text content in real-time as edits happen
+};
+
