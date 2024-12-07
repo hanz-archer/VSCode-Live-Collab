@@ -6,32 +6,31 @@ export function activate(context: vscode.ExtensionContext) {
 
     const userId = `user_${Date.now()}`; // Generate a unique user ID
     let documentId: string | null = null; // Variable to store the current document ID
-    const collaboratorCursors: Record<string, vscode.TextEditorDecorationType> = {};
+    const collaboratorCursors: Record<string, vscode.TextEditorDecorationType> = {}; // Store cursor decorations
 
     const showCollaboratorsCursors = (cursors: Record<string, { line: number; character: number }>) => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
 
-        for (const decoration of Object.values(collaboratorCursors)) {
-            decoration.dispose();
-        }
+        // Clear previous decorations
+        Object.values(collaboratorCursors).forEach((decoration) => decoration.dispose());
 
+        // Apply new decorations
         for (const [collabUserId, position] of Object.entries(cursors)) {
-            if (collabUserId === userId) continue; // Skip self
+            if (collabUserId === userId) continue; // Skip the current user's cursor
 
             const range = new vscode.Range(position.line, position.character, position.line, position.character);
             const decorationType = vscode.window.createTextEditorDecorationType({
-                before: {
-                    contentText: `${collabUserId}`, 
-                    backgroundColor: 'rgba(0, 122, 255, 0.2)', 
-                    color: 'black',
-                    border: '1px solid rgba(0, 122, 255, 0.5)',
-                    margin: '0 3px',
+                after: {
+                    contentText: ` ${collabUserId}`, // Display collaborator's user ID after the cursor
+                    color: 'rgba(0, 122, 255, 0.7)', // Color of the collaborator ID text
+                    margin: '0 5px', // Add margin to avoid overlapping with the code
                 },
+                isWholeLine: true, // Apply decoration across the entire line
             });
 
             editor.setDecorations(decorationType, [range]);
-            collaboratorCursors[collabUserId] = decorationType;
+            collaboratorCursors[collabUserId] = decorationType; // Store decoration for disposal
         }
     };
 
