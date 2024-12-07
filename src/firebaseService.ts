@@ -1,6 +1,6 @@
 // Import the necessary functions from the Firebase SDK
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue } from 'firebase/database';
+import { getDatabase, ref, set, onValue, update } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB__zPNABruaEeI5VRA9X_p39jc_tOAOfo",
@@ -13,21 +13,47 @@ const firebaseConfig = {
   measurementId: "G-ZSN9YYJ21Y"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 // Get a reference to the database
 const database = getDatabase(app);
 
+/**
+ * @param documentId - Unique ID for the document.
+ * @param content - Content of the document.
+ */
 export const syncDocument = (documentId: string, content: string) => {
-  const documentRef = ref(database, `documents/${documentId}`);
+  const documentRef = ref(database, `documents/${documentId}/content`);
 
-  // Set the initial content
   set(documentRef, content);
 
   // Listen for real-time updates
   onValue(documentRef, (snapshot) => {
     const updatedContent = snapshot.val();
-    console.log(updatedContent); // Handle the updated content (e.g., update your document)
+    console.log('Updated content:', updatedContent); // Handle updated content
+  });
+};
+
+/**
+ * Update the user's cursor position in the database.
+ * @param documentId - Unique ID for the document.
+ * @param userId - Unique ID for the user.
+ * @param position - Cursor position (line and character).
+ */
+export const updateCursorPosition = (documentId: string, userId: string, position: { line: number; character: number }) => {
+  const cursorRef = ref(database, `documents/${documentId}/cursors/${userId}`);
+  set(cursorRef, position);
+};
+
+/**
+ * Listen for cursor updates from collaborators.
+ * @param documentId - Unique ID for the document.
+ * @param callback - Callback function to handle updated cursors.
+ */
+export const listenForCursorUpdates = (documentId: string, callback: (cursors: Record<string, { line: number; character: number }>) => void) => {
+  const cursorRef = ref(database, `documents/${documentId}/cursors`);
+  onValue(cursorRef, (snapshot) => {
+    const cursors = snapshot.val() || {};
+    callback(cursors);
   });
 };
