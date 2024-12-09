@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue } from 'firebase/database';
+import { getDatabase, ref, set, onValue, remove } from 'firebase/database';
 
 const firebaseConfig = {
     apiKey: "AIzaSyB__zPNABruaEeI5VRA9X_p39jc_tOAOfo",
@@ -69,4 +69,14 @@ export const listenForDocumentUpdates = (documentId: string, callback: (content:
  */
 export const syncRealTimeDocumentUpdates = (documentId: string, content: string) => {
     syncDocument(documentId, content);
+};
+
+/**
+ * Remove collaborator's cursor when they leave.
+ * @param documentId - Document ID
+ * @param userId - User ID of the collaborator
+ */
+export const removeCollaboratorCursor = (documentId: string, userId: string) => {
+    const cursorRef = ref(database, `documents/${documentId}/cursors/${userId}`);
+    remove(cursorRef);
 };

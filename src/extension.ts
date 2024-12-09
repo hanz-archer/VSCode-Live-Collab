@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { syncDocument, updateCursorPosition, listenForCursorUpdates, listenForDocumentUpdates, syncRealTimeDocumentUpdates } from './firebaseService';
+import { syncDocument, updateCursorPosition, listenForCursorUpdates, listenForDocumentUpdates, syncRealTimeDocumentUpdates, removeCollaboratorCursor } from './firebaseService';
 
 // Function to generate a random 5-character alphanumeric ID
 const generateDocumentId = (): string => {
@@ -180,6 +180,18 @@ export function activate(context: vscode.ExtensionContext) {
         if (document) {
             const content = document.getText();
             syncRealTimeDocumentUpdates(documentId, content); // Sync the updated content to Firebase
+        }
+    });
+
+    /**
+     * Handle collaborator leaving
+     */
+    vscode.workspace.onDidCloseTextDocument((document) => {
+        if (document.uri.toString() === vscode.window.activeTextEditor?.document.uri.toString()) {
+            // Collaborator has left or closed the document, remove their cursor
+            if (documentId) {
+                removeCollaboratorCursor(documentId, userId);
+            }
         }
     });
 
