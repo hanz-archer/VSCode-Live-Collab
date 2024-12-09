@@ -23,7 +23,6 @@ const authenticateWithGitHub = async (): Promise<string | null> => {
     }
 };
 
-
 export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "live-collab" is now active!');
 
@@ -88,8 +87,8 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const document = vscode.window.activeTextEditor?.document;
-        if (!document) {
-            vscode.window.showErrorMessage('No active document found!');
+        if (!document && role === 'Host') {
+            vscode.window.showErrorMessage('No active document found! Host must have a document open.');
             return;
         }
 
@@ -99,22 +98,24 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(`Share this Document ID with your collaborators: ${documentId}`);
 
             // Start collaboration for the host
-            syncDocument(documentId, document.getText());
-            listenForCursorUpdates(documentId, (cursors) => {
-                showCollaboratorsCursors(cursors);
-            });
-            listenForDocumentUpdates(documentId, (content) => {
-                const editor = vscode.window.activeTextEditor;
-                if (editor) {
-                    const currentText = editor.document.getText();
-                    if (currentText !== content) {
-                        const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
-                        editor.edit((editBuilder) => {
-                            editBuilder.replace(fullRange, content);
-                        });
+            if (document) {
+                syncDocument(documentId, document.getText());
+                listenForCursorUpdates(documentId, (cursors) => {
+                    showCollaboratorsCursors(cursors);
+                });
+                listenForDocumentUpdates(documentId, (content) => {
+                    const editor = vscode.window.activeTextEditor;
+                    if (editor) {
+                        const currentText = editor.document.getText();
+                        if (currentText !== content) {
+                            const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
+                            editor.edit((editBuilder) => {
+                                editBuilder.replace(fullRange, content);
+                            });
+                        }
                     }
-                }
-            });
+                });
+            }
         } else if (role === 'Collaborator') {
             // Ask for the document ID from the collaborator
             const inputId = await vscode.window.showInputBox({
@@ -129,8 +130,9 @@ export function activate(context: vscode.ExtensionContext) {
 
             documentId = inputId;
 
-            // Validate the document ID and start collaboration
+            // Automatically open the document and sync its content
             listenForDocumentUpdates(documentId, (content) => {
+                // Check if there's an open document and sync the content
                 const editor = vscode.window.activeTextEditor;
                 if (editor) {
                     const currentText = editor.document.getText();
@@ -140,6 +142,11 @@ export function activate(context: vscode.ExtensionContext) {
                             editBuilder.replace(fullRange, content);
                         });
                     }
+                } else {
+                    // Open a new untitled document if none is open
+                    vscode.workspace.openTextDocument({ content }).then((doc) => {
+                        vscode.window.showTextDocument(doc);
+                    });
                 }
             });
 
@@ -170,8 +177,10 @@ export function activate(context: vscode.ExtensionContext) {
         if (!documentId) return; // Only track text changes if collaboration is active
 
         const document = event.document;
-        const content = document.getText();
-        syncRealTimeDocumentUpdates(documentId, content); // Sync the updated content to Firebase
+        if (document) {
+            const content = document.getText();
+            syncRealTimeDocumentUpdates(documentId, content); // Sync the updated content to Firebase
+        }
     });
 
     // Add the command to the extension's context subscriptions

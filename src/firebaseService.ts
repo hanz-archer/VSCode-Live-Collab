@@ -1,4 +1,3 @@
-// Import the necessary functions from the Firebase SDK
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue } from 'firebase/database';
 
@@ -47,7 +46,7 @@ export const listenForCursorUpdates = (documentId: string, callback: (cursors: R
     const cursorRef = ref(database, `documents/${documentId}/cursors`);
     onValue(cursorRef, (snapshot) => {
         const cursors = snapshot.val() || {};
-        callback(cursors); // Pass cursor positions to the callback
+        callback(cursors);
     });
 };
 
@@ -59,16 +58,15 @@ export const listenForCursorUpdates = (documentId: string, callback: (cursors: R
 export const listenForDocumentUpdates = (documentId: string, callback: (content: string) => void) => {
     const documentRef = ref(database, `documents/${documentId}/content`);
     onValue(documentRef, (snapshot) => {
-        callback(snapshot.val()); // Pass the updated document content to the callback
+        callback(snapshot.val());
     });
 };
 
 /**
- * Listen for real-time updates and sync document changes in Firebase.
- * This will push text content changes to Firebase as they happen.
- * @param documentId - The document ID to sync
- * @param callback - Callback to call with the latest content for the document.
+ * Sync real-time document updates to Firebase.
+ * @param documentId - Document ID
+ * @param content - Content to sync
  */
 export const syncRealTimeDocumentUpdates = (documentId: string, content: string) => {
-    syncDocument(documentId, content); // Sync text content in real-time as edits happen
+    syncDocument(documentId, content);
 };
