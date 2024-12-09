@@ -2,7 +2,7 @@
   "name": "Live-Collaboration",
   "displayName": "Code ta Bai!",
   "description": "Live Collaborator of Code",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "HansArcherDalubatan",
   "engines": {
     "vscode": "^1.95.0"
