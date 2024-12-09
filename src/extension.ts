@@ -107,7 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
                     const editor = vscode.window.activeTextEditor;
                     if (editor) {
                         const currentText = editor.document.getText();
-                        if (currentText !== content) {
+                        if (currentText !== content && content !== null) {
                             const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
                             editor.edit((editBuilder) => {
                                 editBuilder.replace(fullRange, content);
@@ -136,7 +136,7 @@ export function activate(context: vscode.ExtensionContext) {
                 const editor = vscode.window.activeTextEditor;
                 if (editor) {
                     const currentText = editor.document.getText();
-                    if (currentText !== content) {
+                    if (currentText !== content && content !== null) {
                         const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
                         editor.edit((editBuilder) => {
                             editBuilder.replace(fullRange, content);
@@ -157,6 +157,44 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(`Joined collaboration on Document ID: ${documentId}`);
         }
     });
+
+    /**
+     * Command to leave collaboration.
+     */
+    let leaveCollaborationDisposable = vscode.commands.registerCommand('live-collab.leaveCollaboration', async () => {
+        if (!documentId || !userId) {
+            vscode.window.showErrorMessage('No active collaboration session to leave.');
+            return;
+        }
+    
+        const editor = vscode.window.activeTextEditor;
+    
+        if (editor) {
+            const document = editor.document;
+            const content = document.getText();
+    
+            // Save the collaborator's final changes to the shared document
+            await syncRealTimeDocumentUpdates(documentId, content);
+    
+            // Remove collaborator's cursor decorations only
+            if (collaboratorCursors[userId]) {
+                collaboratorCursors[userId].dispose();
+                delete collaboratorCursors[userId];
+            }
+    
+            // Notify the user and ensure they can save their local changes
+            if (document.isDirty) {
+                await document.save();
+            }
+    
+            vscode.window.showInformationMessage('Your changes have been saved. You have left the collaboration.');
+        }
+    
+        // Ensure the session is reset for the collaborator but does not impact the host or others
+        documentId = null; // Reset for this user
+    });
+    
+    
 
     /**
      * Track and sync the local user's cursor position.
@@ -187,16 +225,25 @@ export function activate(context: vscode.ExtensionContext) {
      * Handle collaborator leaving
      */
     vscode.workspace.onDidCloseTextDocument((document) => {
-        if (document.uri.toString() === vscode.window.activeTextEditor?.document.uri.toString()) {
-            // Collaborator has left or closed the document, remove their cursor
-            if (documentId) {
-                removeCollaboratorCursor(documentId, userId);
+        if (documentId && userId) {
+            // Save the collaborator's final state to the shared document
+            const content = document.getText();
+            syncRealTimeDocumentUpdates(documentId, content);
+    
+            // Remove only the collaborator's cursor, leaving the document content intact
+            removeCollaboratorCursor(documentId, userId);
+    
+            // Clean up cursor decorations for this collaborator
+            if (collaboratorCursors[userId]) {
+                collaboratorCursors[userId].dispose();
+                delete collaboratorCursors[userId];
             }
         }
     });
+    
 
     // Add the command to the extension's context subscriptions
-    context.subscriptions.push(startCollaborationDisposable);
+    context.subscriptions.push(startCollaborationDisposable, leaveCollaborationDisposable);
 }
 
 export function deactivate() {

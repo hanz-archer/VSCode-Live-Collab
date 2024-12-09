@@ -58,7 +58,10 @@ export const listenForCursorUpdates = (documentId: string, callback: (cursors: R
 export const listenForDocumentUpdates = (documentId: string, callback: (content: string) => void) => {
     const documentRef = ref(database, `documents/${documentId}/content`);
     onValue(documentRef, (snapshot) => {
-        callback(snapshot.val());
+        const content = snapshot.val();
+        if (content !== null) {
+            callback(content);
+        }
     });
 };
 
@@ -77,6 +80,10 @@ export const syncRealTimeDocumentUpdates = (documentId: string, content: string)
  * @param userId - User ID of the collaborator
  */
 export const removeCollaboratorCursor = (documentId: string, userId: string) => {
+    // Only remove the cursor, leave document content intact
     const cursorRef = ref(database, `documents/${documentId}/cursors/${userId}`);
     remove(cursorRef);
+    
+    // Don't remove or modify the document content
+    // The content will remain in: `documents/${documentId}/content`
 };

@@ -2,7 +2,7 @@
   "name": "Live-Collaboration",
   "displayName": "Code ta Bai!",
   "description": "Live Collaborator of Code",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "HansArcherDalubatan",
   "engines": {
     "vscode": "^1.95.0"
@@ -11,19 +11,19 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:live-collab.helloWorld",
-    "onCommand:live-collab.startCollaboration"
+    "onCommand:live-collab.startCollaboration",
+    "onCommand:live-collab.leaveCollaboration"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "live-collab.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "live-collab.startCollaboration",
         "title": "Start Collaboration"
+      },
+      {
+        "command": "live-collab.leaveCollaboration",
+        "title": "Leave Collaboration"
       }
     ]
   },
