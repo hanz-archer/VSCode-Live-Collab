@@ -182,17 +182,13 @@ export function activate(context: vscode.ExtensionContext) {
                 delete collaboratorCursors[userId];
             }
     
-            // Notify the user and ensure they can save their local changes
-            if (document.isDirty) {
-                await document.save();
-            }
-    
             vscode.window.showInformationMessage('Your changes have been saved. You have left the collaboration.');
         }
     
         // Ensure the session is reset for the collaborator but does not impact the host or others
         documentId = null; // Reset for this user
     });
+    
     
     
 
