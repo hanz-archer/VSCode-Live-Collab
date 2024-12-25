@@ -1,4 +1,4 @@
-﻿# VS Code Live Collaboration Extension
+﻿# VS Code Live Collaboration Extension Project
 
 A real-time collaboration extension for Visual Studio Code that enables multiple users to edit the same file simultaneously. Users can see each other's cursor positions and changes in real-time.
 
